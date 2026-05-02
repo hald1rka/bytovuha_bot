@@ -1,8 +1,10 @@
 import sqlite3
 import re
 import os
+import threading
 from datetime import datetime, timedelta
 from typing import Optional, Tuple, List
+from flask import Flask
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -11,6 +13,7 @@ from telegram.ext import (
 )
 from telegram.request import HTTPXRequest
 
+# ========== НАСТРОЙКИ ==========
 TOKEN = "8791934705:AAFklC8iQkrb2FMcFH_rCUQVTfAqI_Tzk-E"
 CONNECT_TIMEOUT = 30.0
 READ_TIMEOUT = 30.0
@@ -20,6 +23,23 @@ RECIPE_NAME, RECIPE_INGREDIENTS, RECIPE_STEPS = range(3)
 
 DB_PATH = os.path.join(os.path.dirname(__file__), 'recipes.db')
 
+# Создаём Flask-приложение для healthcheck
+health_app = Flask(__name__)
+
+@health_app.route('/')
+def home():
+    return 'Bot is running', 200
+
+@health_app.route('/health')
+def health():
+    return 'ok', 200
+
+def run_flask():
+    """Запускает Flask сервер для healthcheck"""
+    port = int(os.environ.get('PORT', 10000))
+    health_app.run(host='0.0.0.0', port=port, debug=False, use_reloader=False)
+
+# ========== БАЗА ДАННЫХ ==========
 def init_db():
     conn = sqlite3.connect(DB_PATH)
     c = conn.cursor()
@@ -352,7 +372,7 @@ TASKS = {
     "order": {"name": "📦 Забрать заказ", "text": "Забрать заказ", "delay": 0},
     "clean": {"name": "🪠 Черкаш", "text": "Почистить унитаз", "delay": 0},
     "vacuum": {"name": "🧹 Обслужить пылесос", "text": "Обслужить пылесос (очистить контейнер, проверить фильтры)", "delay": 0},
-    "walk": {"name": "🐕 Хочу гулять", "text": "Пойти гулять", "delay": 0},
+    "walk": {"name": "🐕 Хочу гулять", "text": "Пойти гулять с собакой", "delay": 0},
     "cuddle": {"name": "💕 Обнимашки", "text": "Время для нежности и близости", "delay": 0},
 }
 pending_orders = {}
@@ -453,6 +473,13 @@ async def send_reminders(context: ContextTypes.DEFAULT_TYPE):
 def main():
     print("🚀 Запуск бота...")
     init_db()
+    
+    # Запускаем Flask для healthcheck в отдельном потоке
+    flask_thread = threading.Thread(target=run_flask, daemon=True)
+    flask_thread.start()
+    print("✅ Healthcheck сервер запущен на порту 10000")
+    
+    # Создаём приложение бота
     app = Application.builder().token(TOKEN).request(
         HTTPXRequest(connect_timeout=CONNECT_TIMEOUT, read_timeout=READ_TIMEOUT, write_timeout=WRITE_TIMEOUT)
     ).build()
