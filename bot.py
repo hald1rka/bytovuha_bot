@@ -253,7 +253,6 @@ async def handle_remind_text(update: Update, context: ContextTypes.DEFAULT_TYPE)
         await update.message.reply_text("❌ Начните с /remind")
         return
     temp_remind[user_id]["text"] = update.message.text
-    # Изменённые кнопки: "Сейчас" и "Через 10 минут"
     keyboard = [
         [InlineKeyboardButton("⏰ Сейчас", callback_data="time_now")],
         [InlineKeyboardButton("⏰ Через 10 минут", callback_data="time_10min")],
@@ -278,7 +277,7 @@ async def remind_time_callback(update: Update, context: ContextTypes.DEFAULT_TYP
         return
     now = datetime.now()
     if query.data == "time_now":
-        remind_time = now  # сразу
+        remind_time = now
     elif query.data == "time_10min":
         remind_time = now + timedelta(minutes=10)
     elif query.data == "time_30min":
@@ -352,6 +351,9 @@ TASKS = {
     "trash": {"name": "🗑 Вынести мусор", "text": "Вынести мусор", "delay": 0},
     "order": {"name": "📦 Забрать заказ", "text": "Забрать заказ", "delay": 0},
     "clean": {"name": "🪠 Черкаш", "text": "Почистить унитаз", "delay": 0},
+    "vacuum": {"name": "🧹 Обслужить пылесос", "text": "Обслужить пылесос (очистить контейнер, проверить фильтры)", "delay": 0},
+    "walk": {"name": "🐕 Хочу гулять", "text": "Пойти гулять", "delay": 0},
+    "cuddle": {"name": "💕 Обнимашки", "text": "Время для нежности и близости", "delay": 0},
 }
 pending_orders = {}
 
